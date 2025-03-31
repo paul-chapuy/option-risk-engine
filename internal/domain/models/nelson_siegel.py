@@ -20,8 +20,6 @@ class NelsonSiegel:
         self._b1 = b1
         self._b2 = b2
         self._tau = tau
-        self.tenors = tenors
-        self.empirical_values = empirical_values
         if tenors is not None and empirical_values is not None:
             self._rmse = NelsonSiegel._cost(
                 tenors,
