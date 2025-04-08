@@ -6,6 +6,7 @@ from scipy.optimize import minimize
 
 
 class NelsonSiegel:
+    """Nelson-Siegel model for the yield curve term structure (Nelson & Siegel, 1987)"""
 
     def __init__(
         self,
