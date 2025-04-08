@@ -54,7 +54,7 @@ class SSVI:
         return sqrt(total_variance / year_to_maturity)
 
     @staticmethod
-    def constraints(self, parameters: np.ndarray) -> bool:
+    def constraints(parameters: np.ndarray) -> bool:
         gamma, eta, rho = parameters
         if not 0 < gamma <= 0.5:
             return True
