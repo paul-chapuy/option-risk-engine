@@ -72,7 +72,7 @@ class NelsonSiegel:
     @staticmethod
     def _cost(
         tenors: List[float], empirical_values: List[float], parameters: np.ndarray
-    ):
+    ) -> float:
         rmse = 0.0
         b0, b1, b2, tau = parameters
         for m, y in zip(tenors, empirical_values):
