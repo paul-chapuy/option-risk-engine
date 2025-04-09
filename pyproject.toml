@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "option-risk-engine"
+version = "0.1.0"
+description = "Risk and pricing of an equity option book."
+authors = ["paul-chapuy <chapuypaul@gmail.com>"]
+readme = "README.md"
+packages = [{include = "option_risk_engine"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^2.2.4"
+scipy = "^1.15.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
