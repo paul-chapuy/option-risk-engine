@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Optional
-from datetime import date
+from datetime import date, timedelta
 
 from internal.infra.api import Response, Context, API, QueryParamAuth
 
@@ -9,7 +9,6 @@ class TreasuryYield(Enum):
     """Daily Treasury Constant Maturity Yields from FRED"""
 
     ONE_MONTH = "DGS1MO"
-    THREE_MONTH = "DGS3M"
     SIX_MONTH = "DGS6MO"
     ONE_YEAR = "DGS1"
     TWO_YEAR = "DGS2"
@@ -19,10 +18,6 @@ class TreasuryYield(Enum):
     TEN_YEAR = "DGS10"
     TWENTY_YEAR = "DGS20"
     THIRTY_YEAR = "DGS30"
-
-    @classmethod
-    def values(cls):
-        return [member.value for member in cls]
 
 
 class FredClient:
@@ -38,7 +33,7 @@ class FredClient:
         ctx = Context.make(auth)
         return FredClient(ctx)
 
-    def get_treasury_yield_series(
+    def get_yield_series(
         self,
         treasury_yield: TreasuryYield,
         start: Optional[date] = None,
@@ -58,3 +53,24 @@ class FredClient:
             url=(self._url, "series/observations"),
             params=params,
         )
+
+    def get_latest_yield(
+        self, treasury_yield: TreasuryYield, max_days_back: int = 7
+    ) -> Response:
+        today = date.today()
+
+        for delta in range(max_days_back):
+            target_date = today - timedelta(days=delta)
+            response = self.get_yield_series(
+                treasury_yield,
+                start=target_date,
+                end=target_date,
+            )
+
+            if response.status == 200 and response.data.get("observations"):
+                obs = response.data["observations"][0]
+
+                if obs.get("value") not in ("", "."):
+                    return Response(data=obs, status=200)
+
+        return Response(data=None, status=404)
