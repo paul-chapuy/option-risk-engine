@@ -53,8 +53,7 @@ class OptionPricer(ABC):
         self.dividend_yield = dividend_yield
 
     @abstractmethod
-    def price(self, option_type: OptionType) -> float:
-        pass
+    def price(self, option_type: OptionType) -> float: ...
 
 
 class BlackScholesMerton(OptionPricer):

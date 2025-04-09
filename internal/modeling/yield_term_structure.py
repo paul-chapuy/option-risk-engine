@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional
 from math import exp, sqrt
 
@@ -5,7 +6,16 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-class NelsonSiegel:
+class YieldTermStructureModel(ABC):
+
+    @abstractmethod
+    def fit(self, maturities: List[float], yields: List[float]) -> None: ...
+
+    @abstractmethod
+    def value(self, t: float, dt: float) -> float: ...
+
+
+class NelsonSiegel(YieldTermStructureModel):
     """Nelson-Siegel model for the yield curve term structure (Nelson & Siegel, 1987)"""
 
     def __init__(

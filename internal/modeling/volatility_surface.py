@@ -2,6 +2,15 @@ from math import sqrt
 
 import numpy as np
 
+from abc import ABC, abstractmethod
+
+
+class VolatilitySurfaceModel(ABC):
+
+    def value(
+        self, moneyness: float, year_to_maturity: float, atm_volatility: float
+    ) -> float: ...
+
 
 class SSVI:
     """Power-law parameterization of the SSVI volatility surface (Gatheral & Jacquier, 2013)"""
@@ -28,7 +37,7 @@ class SSVI:
             pow(theta, self._gamma) * pow((1 + theta), (1 - self._gamma))
         )
 
-    def evaluate_total_variance(
+    def value_total_variance(
         self, moneyness: float, year_to_maturity: float, atm_volatility: float
     ) -> float:
         theta = atm_volatility**2 * year_to_maturity
@@ -43,7 +52,7 @@ class SSVI:
             )
         )
 
-    def evaluate_iv(
+    def value(
         self, moneyness: float, year_to_maturity: float, atm_volatility: float
     ) -> float:
         total_variance = self.evaluate_total_variance(
