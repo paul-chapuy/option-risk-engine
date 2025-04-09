@@ -10,6 +10,7 @@ packages = [{include = "option_risk_engine"}]
 python = "^3.11"
 numpy = "^2.2.4"
 scipy = "^1.15.2"
+requests = "^2.32.3"
 
 
 [build-system]
