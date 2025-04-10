@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from internal.infra.api import Response, Context, API, QueryParamAuth
 
 
-class TreasuryYield(Enum):
+class TreasuryYieldID(Enum):
     """Daily Treasury Constant Maturity Yields from FRED"""
 
     ONE_MONTH = "DGS1MO"
@@ -35,7 +35,7 @@ class FredClient:
 
     def get_yield_series(
         self,
-        treasury_yield: TreasuryYield,
+        treasury_yield: TreasuryYieldID,
         start: Optional[date] = None,
         end: Optional[date] = None,
     ) -> Response:
@@ -55,7 +55,7 @@ class FredClient:
         )
 
     def get_latest_yield(
-        self, treasury_yield: TreasuryYield, max_days_back: int = 7
+        self, treasury_yield: TreasuryYieldID, max_days_back: int = 7
     ) -> Response:
         today = date.today()
 
