@@ -8,8 +8,14 @@ from scipy.optimize import minimize
 
 class YieldTermStructureModel(ABC):
 
+    @classmethod
     @abstractmethod
-    def fit(self, maturities: List[float], yields: List[float]) -> None: ...
+    def make(
+        cls, tenors: List[float], yields: List[float], **kwargs
+    ) -> "YieldTermStructureModel": ...
+
+    @abstractmethod
+    def __call__(self, t: float, dt: float) -> float: ...
 
     @abstractmethod
     def value(self, t: float, dt: float) -> float: ...
@@ -19,24 +25,13 @@ class NelsonSiegel(YieldTermStructureModel):
     """Nelson-Siegel model for the yield curve term structure (Nelson & Siegel, 1987)"""
 
     def __init__(
-        self,
-        b0: float,
-        b1: float,
-        b2: float,
-        tau: float,
-        tenors: Optional[List[float]] = None,
-        empirical_values: Optional[List[float]] = None,
+        self, b0: float, b1: float, b2: float, tau: float, rmse: Optional[float] = None
     ):
         self._b0 = b0
         self._b1 = b1
         self._b2 = b2
         self._tau = tau
-        if tenors is not None and empirical_values is not None:
-            self._rmse = NelsonSiegel._cost(
-                tenors,
-                empirical_values,
-                [b0, b1, b2, tau],
-            )
+        self._rmse: Optional[float] = rmse
 
     def __str__(self):
         lines = [
@@ -45,10 +40,12 @@ class NelsonSiegel(YieldTermStructureModel):
             f"  Slope (b1):     {self._b1:.6f}",
             f"  Curvature (b2): {self._b2:.6f}",
             f"  Tau:            {self._tau:.6f}",
+            f"  Cost (RMSE):    {self._rmse:.6f}",
         ]
-        if self._cost is not None:
-            lines.append(f"  Cost (RMSE):    {self._rmse:.6f}")
         return "\n".join(lines)
+
+    def __call__(self, t: float, dt: float) -> float:
+        return self.value(t, dt)
 
     @property
     def b0(self) -> float:
@@ -65,6 +62,10 @@ class NelsonSiegel(YieldTermStructureModel):
     @property
     def tau(self) -> float:
         return self._tau
+
+    @property
+    def rmse(self) -> Optional[float]:
+        return self._rmse
 
     def value(self, t, dt: float) -> float:
         y_t = self._value(t, self.b0, self.b1, self.b2, self.tau)
@@ -92,24 +93,36 @@ class NelsonSiegel(YieldTermStructureModel):
         return sqrt(rmse / len(empirical_values))
 
     @staticmethod
-    def fit(
+    def _fit(
         tenors: List[float],
         empirical_values: List[float],
-        initial_guess: List[float],
-        bounds: List[Tuple[float, float]],
+        initial_guess: Optional[List[float]] = [0.03, -0.02, 0.02, 2.0],
+        bounds: Optional[List[Tuple[float, float]]] = [
+            (0.0, 0.10),
+            (-0.10, 0.10),
+            (-0.10, 0.10),
+            (0.05, 10.0),
+        ],
     ) -> "NelsonSiegel":
 
         result = minimize(
             lambda x: NelsonSiegel._cost(tenors, empirical_values, x),
-            initial_guess,
+            x0=initial_guess,
             bounds=bounds,
         )
+        if not result.success:
+            raise RuntimeError(f"Nelson-Siegel optimization failed: {result.message}")
 
         return NelsonSiegel(
             b0=result.x[0],
             b1=result.x[1],
             b2=result.x[2],
             tau=result.x[3],
-            tenors=tenors,
-            empirical_values=empirical_values,
+            rmse=NelsonSiegel._cost(tenors, empirical_values, result.x),
         )
+
+    @classmethod
+    def make(
+        cls, tenors: List[float], empirical_values: List[float], **kwargs
+    ) -> "NelsonSiegel":
+        return cls._fit(tenors, empirical_values, **kwargs)
