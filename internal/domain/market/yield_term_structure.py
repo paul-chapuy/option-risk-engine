@@ -7,7 +7,7 @@ from internal.modeling.yield_term_structure import YieldTermStructureModel
 
 
 class TermStructureType(Enum):
-    YTM = auto()
+    Par = auto()
     Spot = auto()
     Divivend = auto()
 
