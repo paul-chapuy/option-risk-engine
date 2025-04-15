@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 from datetime import date, timedelta
 
-from internal.infra.api import Response, Context, API, QueryParamAuth
+from internal.infra.api.api import Response, Context, API, QueryParamAuth
 
 
 class TreasuryYieldID(Enum):

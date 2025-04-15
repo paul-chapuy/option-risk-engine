@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 class YieldTermStructureModel(ABC):
 
     @abstractmethod
-    def __call__(self, t: float, dt: float) -> float: ...
+    def __call__(self, dt: float) -> float: ...
 
     @abstractmethod
     def __str__(self): ...
@@ -21,7 +21,7 @@ class YieldTermStructureModel(ABC):
     ) -> "YieldTermStructureModel": ...
 
     @abstractmethod
-    def value(self, t: float, dt: float) -> float: ...
+    def value(self, dt: float) -> float: ...
 
 
 class NelsonSiegel(YieldTermStructureModel):
@@ -34,7 +34,7 @@ class NelsonSiegel(YieldTermStructureModel):
         self._b1 = b1
         self._b2 = b2
         self._tau = tau
-        self._rmse: Optional[float] = rmse
+        self._rmse = rmse
 
     def __str__(self):
         lines = [
@@ -47,8 +47,8 @@ class NelsonSiegel(YieldTermStructureModel):
         ]
         return "\n".join(lines)
 
-    def __call__(self, t: float, dt: float) -> float:
-        return self.value(t, dt)
+    def __call__(self, dt: float) -> float:
+        return self.value(dt)
 
     @classmethod
     def make(
@@ -56,12 +56,8 @@ class NelsonSiegel(YieldTermStructureModel):
     ) -> "NelsonSiegel":
         return cls._fit(tenors, empirical_values, **kwargs)
 
-    def value(self, t, dt: float) -> float:
-        y_t = self._value(t, self.b0, self.b1, self.b2, self.tau)
-        if t + dt < 1e-6:
-            return y_t
-        y_t_dt = self._value(t + dt, self.b0, self.b1, self.b2, self.tau)
-        return ((t + dt) * y_t_dt - t * y_t) / dt
+    def value(self, dt: float) -> float:
+        return self._value(dt, self.b0, self.b1, self.b2, self.tau)
 
     @property
     def b0(self) -> float:
