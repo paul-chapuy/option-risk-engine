@@ -1,9 +1,10 @@
-from math import exp, sqrt, log
+from math import exp, sqrt, log, erf
 from abc import ABC, abstractmethod
 
 from internal.domain.assets.option import OptionType, ExcerciceStyle
 
-from scipy.stats import norm
+import numpy as np
+from numba import njit
 
 
 class OptionPricer(ABC):
@@ -38,19 +39,11 @@ class OptionPricer(ABC):
             case _:
                 raise ValueError(f"Unsupported exercise style: {exercise_style}")
 
-    @property
-    def DF(self) -> float:
-        return exp(-self.r * self.T)
+    def set_volatility(self, sigma: float) -> None:
+        self.sigma = sigma
 
-    @property
-    def F(self) -> float:
-        return self.S * exp((self.r - self.q) * self.T)
-
-    def set_volatility(self, volatility: float) -> None:
-        self.volatility = volatility
-
-    def set_dividend_yield(self, dividend_yield: float) -> None:
-        self.dividend_yield = dividend_yield
+    def set_dividend_yield(self, q: float) -> None:
+        self.q = q
 
     @abstractmethod
     def price(self, option_type: OptionType) -> float: ...
@@ -70,9 +63,9 @@ class BlackScholesMerton(OptionPricer):
 
     @property
     def d1(self) -> float:
-        return (self.moneyness + (self.r - self.q + 0.5 * self.sigma**2) * self.T) / (
-            self.sigma * sqrt(self.T)
-        )
+        return (
+            log(self.S / self.K) + (self.r - self.q + 0.5 * self.sigma**2) * self.T
+        ) / (self.sigma * sqrt(self.T))
 
     @property
     def d2(self) -> float:
@@ -81,17 +74,34 @@ class BlackScholesMerton(OptionPricer):
     def price(self, option_type: OptionType) -> float:
         if self.T <= 0:
             return (
-                max(self.S - self.K, 0)
-                if option_type == OptionType.CALL
-                else max(self.K - self.S, 0)
+                max(self.S - self.K, 0.0)
+                if option_type == OptionType.Call
+                else max(self.K - self.S, 0.0)
             )
 
-        call_price = self.DF * (self.F * norm.cdf(self.d1) - self.K * norm.cdf(self.d2))
+        S, K, r, q, sigma, T = self.S, self.K, self.r, self.q, self.sigma, self.T
+        if option_type == OptionType.Call:
+            return BlackScholesMerton._price(S, K, r, q, sigma, T, is_call=True)
+        return BlackScholesMerton._price(S, K, r, q, sigma, T, is_call=False)
 
-        if option_type == OptionType.CALL:
+    @staticmethod
+    @njit
+    def _price(
+        S: float, K: float, r: float, q: float, sigma: float, T: float, is_call: bool
+    ) -> float:
+        F = S * exp((r - q) * T)
+        DF = exp(-r * T)
+
+        d1 = (log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+        d2 = d1 - sigma * sqrt(T)
+
+        Nd1 = 0.5 * (1 + erf(d1 / sqrt(2)))
+        Nd2 = 0.5 * (1 + erf(d2 / sqrt(2)))
+        call_price = DF * (F * Nd1 - K * Nd2)
+        if is_call:
             return call_price
 
-        return call_price - self.DF * (self.F - self.K)
+        return call_price - DF * (F - K)
 
 
 class CoxRossRubinstein(OptionPricer):
@@ -107,4 +117,44 @@ class CoxRossRubinstein(OptionPricer):
         super().__init__(S, K, r, T)
 
     def price(self, option_type: OptionType) -> float:
-        return NotImplementedError("CRR not implemented yet.")
+        if self.T <= 0:
+            return (
+                max(self.S - self.K, 0.0)
+                if option_type == OptionType.Call
+                else max(self.K - self.S, 0.0)
+            )
+
+        S, K, r, q, sigma, T = self.S, self.K, self.r, self.q, self.sigma, self.T
+        if option_type == OptionType.Call:
+            return CoxRossRubinstein._price(S, K, r, q, sigma, T, is_call=True)
+        return CoxRossRubinstein._price(S, K, r, q, sigma, T, is_call=False)
+
+    @staticmethod
+    @njit(fastmath=True)
+    def _price(
+        S: float, K: float, r: float, q: float, sigma: float, T: float, is_call: bool
+    ) -> float:
+        N = 1000
+        dt = T / N
+
+        u = exp(sigma * sqrt(dt))
+        d = 1 / u
+        p = (exp((r - q) * dt) - d) / (u - d)
+        df = exp(-r * dt)
+
+        ST = np.empty(N + 1)
+        for j in range(N + 1):
+            ST[j] = S * u ** (N - j) * d**j
+
+        payoff = np.empty(N + 1)
+        for j in range(N + 1):
+            payoff[j] = max(ST[j] - K, 0.0) if is_call else max(K - ST[j], 0.0)
+
+        for i in range(N - 1, -1, -1):
+            for j in range(i + 1):
+                ST[j] = ST[j] / u
+                cont_val = df * (p * payoff[j] + (1 - p) * payoff[j + 1])
+                exercise_val = max(ST[j] - K, 0.0) if is_call else max(K - ST[j], 0.0)
+                payoff[j] = max(cont_val, exercise_val)
+
+        return payoff[0]
