@@ -61,16 +61,6 @@ class BlackScholesMerton(OptionPricer):
     ):
         super().__init__(S, K, r, T)
 
-    @property
-    def d1(self) -> float:
-        return (
-            log(self.S / self.K) + (self.r - self.q + 0.5 * self.sigma**2) * self.T
-        ) / (self.sigma * sqrt(self.T))
-
-    @property
-    def d2(self) -> float:
-        return self.d1 - self.sigma * sqrt(self.T)
-
     def price(self, option_type: OptionType) -> float:
         if self.T <= 0:
             return (
