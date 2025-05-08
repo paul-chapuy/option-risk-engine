@@ -1,10 +1,11 @@
-from math import exp, sqrt, log, erf
+from math import exp, sqrt, log, erf, nan
 from abc import ABC, abstractmethod
 
 from internal.domain.assets.option import OptionType, ExcerciceStyle
 
 import numpy as np
 from numba import njit
+from scipy.optimize import brentq
 
 
 class OptionPricer(ABC):
@@ -46,7 +47,38 @@ class OptionPricer(ABC):
         self.q = q
 
     @abstractmethod
-    def price(self, option_type: OptionType) -> float: ...
+    def price(
+        self,
+        option_type: OptionType,
+        sigma: float = None,
+        q: float = None,
+    ) -> float: ...
+
+    def implied_volatility(
+        self,
+        option_type: OptionType,
+        market_price: float,
+        q: float,
+        initial_guess: float = None,
+    ) -> float:
+
+        self.set_dividend_yield(q)
+
+        def f(sigma):
+            self.set_volatility(sigma)
+            return self.price(option_type) - market_price
+
+        a, b = 0.01, 2.0
+        if initial_guess:
+            a, b = 0.5 * initial_guess, 1.5 * initial_guess
+
+        try:
+            iv = brentq(f, a, b, maxiter=20, xtol=1.0e-5, rtol=1.0e-4)
+        except ValueError:  # TODO: add logs at failure
+            iv = nan
+        except RuntimeError:
+            iv = nan
+        return iv
 
 
 class BlackScholesMerton(OptionPricer):
@@ -61,7 +93,16 @@ class BlackScholesMerton(OptionPricer):
     ):
         super().__init__(S, K, r, T)
 
-    def price(self, option_type: OptionType) -> float:
+    def price(
+        self,
+        option_type: OptionType,
+        sigma: float = None,
+        q: float = None,
+    ) -> float:
+        if sigma:
+            self.set_volatility(sigma)
+        if q:
+            self.set_dividend_yield(q)
         if self.T <= 0:
             return (
                 max(self.S - self.K, 0.0)
@@ -75,19 +116,21 @@ class BlackScholesMerton(OptionPricer):
         return BlackScholesMerton._price(S, K, r, q, sigma, T, is_call=False)
 
     @staticmethod
-    @njit
+    @njit(fastmath=True)
     def _price(
         S: float, K: float, r: float, q: float, sigma: float, T: float, is_call: bool
     ) -> float:
+
+        def norm(x: float) -> float:
+            return 0.5 * (1 + erf(x / sqrt(2)))
+
         F = S * exp((r - q) * T)
         DF = exp(-r * T)
 
         d1 = (log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
         d2 = d1 - sigma * sqrt(T)
 
-        Nd1 = 0.5 * (1 + erf(d1 / sqrt(2)))
-        Nd2 = 0.5 * (1 + erf(d2 / sqrt(2)))
-        call_price = DF * (F * Nd1 - K * Nd2)
+        call_price = DF * (F * norm(d1) - K * norm(d2))
         if is_call:
             return call_price
 
@@ -106,7 +149,16 @@ class CoxRossRubinstein(OptionPricer):
     ):
         super().__init__(S, K, r, T)
 
-    def price(self, option_type: OptionType) -> float:
+    def price(
+        self,
+        option_type: OptionType,
+        sigma: float = None,
+        q: float = None,
+    ) -> float:
+        if sigma:
+            self.set_volatility(sigma)
+        if q:
+            self.set_dividend_yield(q)
         if self.T <= 0:
             return (
                 max(self.S - self.K, 0.0)
