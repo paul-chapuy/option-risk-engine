@@ -1,8 +1,7 @@
+from abc import ABC
 from math import sqrt
 
 import numpy as np
-
-from abc import ABC, abstractmethod
 
 
 class VolatilitySurfaceModel(ABC):
