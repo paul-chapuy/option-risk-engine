@@ -3,10 +3,10 @@ from typing import List, Optional
 from datetime import date
 from dataclasses import dataclass
 
-from internal.modeling.yield_term_structure import YieldTermStructureModel
+from internal.modeling.yield_curve import YieldCurveModel
 
 
-class TermStructureType(Enum):
+class YieldCurveType(Enum):
     Par = auto()
     Spot = auto()
     Divivend = auto()
@@ -20,12 +20,11 @@ class YieldPoint:
 
 
 @dataclass
-class YieldTermStructure:
+class YieldCurve:
 
     points: List[YieldPoint]
-    term_stucture_type: TermStructureType
+    yield_type: YieldCurveType
     evaluation_date: Optional[date] = None
-    model: Optional[YieldTermStructureModel] = None
 
     def __post_init__(self):
         self.points.sort(key=lambda p: p.year_to_maturity)
@@ -37,28 +36,16 @@ class YieldTermStructure:
     def __iter__(self):
         return ((p.year_to_maturity, p.yield_rate) for p in self.points)
 
+    @property
     def tenors(self) -> List[float]:
         return [p.year_to_maturity for p in self.points]
 
+    @property
     def yields(self) -> List[float]:
         return [p.yield_rate for p in self.points]
 
     @staticmethod
-    def from_raw_data(
-        points: List[YieldPoint],
-        term_structure_type: TermStructureType,
-        model: YieldTermStructureModel,
-    ) -> "YieldTermStructure":
-        ts = YieldTermStructure(points, term_structure_type)
-        ts.model = model.make(ts.tenors(), ts.yields())
-        return ts
-
-    @staticmethod
-    def from_fitted_model(
-        points: List[YieldPoint],
-        term_structure_type: TermStructureType,
-        fitted_model: YieldTermStructureModel,
-    ) -> "YieldTermStructure":
-        ts = YieldTermStructure(points, term_structure_type)
-        ts.model = fitted_model
-        return ts
+    def calibrate(
+        curve: "YieldCurve", model: YieldCurveModel, **kwargs
+    ) -> "YieldCurveModel":
+        return model.make(curve.tenors, curve.yields, **kwargs)
