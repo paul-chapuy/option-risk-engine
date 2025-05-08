@@ -1,30 +1,28 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional
 from math import exp, sqrt
+from bisect import bisect_right
 
 import numpy as np
 from scipy.optimize import minimize
 
 
-class YieldTermStructureModel(ABC):
+class YieldCurveModel(ABC):
 
     @abstractmethod
     def __call__(self, dt: float) -> float: ...
-
-    @abstractmethod
-    def __str__(self): ...
 
     @classmethod
     @abstractmethod
     def make(
         cls, tenors: List[float], yields: List[float], **kwargs
-    ) -> "YieldTermStructureModel": ...
+    ) -> "YieldCurveModel": ...
 
     @abstractmethod
     def value(self, dt: float) -> float: ...
 
 
-class NelsonSiegel(YieldTermStructureModel):
+class NelsonSiegel(YieldCurveModel):
     """Nelson-Siegel model for the yield curve term structure (Nelson & Siegel, 1987)"""
 
     def __init__(
@@ -124,3 +122,36 @@ class NelsonSiegel(YieldTermStructureModel):
             tau=result.x[3],
             rmse=NelsonSiegel._cost(tenors, empirical_values, result.x),
         )
+
+
+class PiecewiseLinear(YieldCurveModel):
+    """Piecewise linear interpolation for yield curve"""
+
+    def __init__(self, tenors: List[float], yields: List[float]):
+        if len(tenors) != len(yields):
+            raise ValueError("Tenors and yields must have the same length.")
+        if not all(earlier <= later for earlier, later in zip(tenors, tenors[1:])):
+            raise ValueError("Tenors must be sorted in increasing order.")
+        self._tenors = tenors
+        self._yields = yields
+
+    def __call__(self, dt: float) -> float:
+        return self.value(dt)
+
+    def value(self, dt: float) -> float:
+        if dt <= self._tenors[0]:
+            return self._yields[0]
+        elif dt >= self._tenors[-1]:
+            return self._yields[-1]
+        else:
+            i = bisect_right(self._tenors, dt)
+            t0, t1 = self._tenors[i - 1], self._tenors[i]
+            y0, y1 = self._yields[i - 1], self._yields[i]
+            weight = (dt - t0) / (t1 - t0)
+            return y0 + weight * (y1 - y0)
+
+    @classmethod
+    def make(
+        cls, tenors: List[float], yields: List[float], **kwargs
+    ) -> "PiecewiseLinear":
+        return cls(tenors, yields)
