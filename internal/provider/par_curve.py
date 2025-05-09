@@ -1,7 +1,7 @@
 import os
 import pickle
 from pathlib import Path
-from typing import Final, Dict, List
+from typing import Final, Dict, List, Optional
 from datetime import datetime, date
 
 from internal.infra.api.fred import FredClient, TreasuryYieldID
@@ -10,9 +10,12 @@ from internal.domain.market.yield_curve import YieldCurve, YieldPoint, YieldCurv
 
 class ParCurveProvider:
 
-    snapshot = date.today().strftime("%Y-%m-%d")
-    cache_path = Path(f"data/cache/par_curve_{snapshot}.pkl")
-    api_key = os.environ["FRED_API_KEY"]
+    def __init__(self, snapshot: Optional[str] = None, api_key: Optional[str] = None):
+        self.snapshot = snapshot or date.today().strftime("%Y-%m-%d")
+        self.cache_path = (
+            Path(__file__).resolve().parents[2] / f"cache/par_curve_{self.snapshot}.pkl"
+        )
+        self.api_key = api_key or os.environ["FRED_API_KEY"]
 
     def get(self) -> YieldCurve:
         try:
@@ -24,9 +27,7 @@ class ParCurveProvider:
             return curve
 
     def get_from_fred(self) -> YieldCurve:
-        curve = YieldCurve(self._get_yield_points_from_fred(), YieldCurveType.Par)
-        self.save_to_cache(curve)
-        return curve
+        return YieldCurve(self._get_yield_points_from_fred(), YieldCurveType.Par)
 
     def get_from_cache(self) -> YieldCurve:
         if self.cache_path is None or not self.cache_path.exists():
@@ -73,8 +74,6 @@ class ParCurveProvider:
         return yield_points
 
     def save_to_cache(self, curve: YieldCurve) -> None:
-        if self.cache_path is None:
-            return
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.cache_path, "wb") as f:
             pickle.dump(curve, f)

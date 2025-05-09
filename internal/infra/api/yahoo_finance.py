@@ -1,4 +1,7 @@
+from typing import Dict, List, Tuple
 import yfinance as yf
+
+from pandas import DataFrame
 
 
 class YahooClient:
@@ -8,19 +11,11 @@ class YahooClient:
         self._yf_ticker = yf.Ticker(self.ticker)
 
     def get_last_price(self) -> float:
-        return self._yf_ticker.info["regularMarketPrice"]
+        return self._yf_ticker.info.get("regularMarketPrice")
 
-    def get_option_chain(self, expiry: str) -> dict:
+    def get_option_chain(self, expiry: str) -> Tuple[DataFrame | DataFrame]:
         option_chain = self._yf_ticker.option_chain(expiry)
-        return {"calls": option_chain.calls, "puts": option_chain.puts}
+        return option_chain.calls, option_chain.puts
 
-    def get_all_option_chains(self) -> dict:
-        expiries = self._yf_ticker.options
-        chains = {}
-        for expiry in expiries:
-            try:
-                chain = self._yf_ticker.option_chain(expiry)
-                chains[expiry] = {"calls": chain.calls, "puts": chain.puts}
-            except Exception as e:
-                print(f"Failed to fetch options for {expiry}: {e}")
-        return chains
+    def get_options_expirires(self) -> Tuple[str]:
+        return self._yf_ticker.options
