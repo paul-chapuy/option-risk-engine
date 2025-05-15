@@ -10,12 +10,12 @@ from internal.domain.market.yield_curve import YieldCurve, YieldPoint, YieldCurv
 
 class ParCurveProvider:
 
-    def __init__(self, snapshot: Optional[str] = None, api_key: Optional[str] = None):
-        self.snapshot = snapshot or date.today().strftime("%Y-%m-%d")
+    def __init__(self, snapshot: str, api_key: str):
+        self.snapshot = snapshot
         self.cache_path = (
             Path(__file__).resolve().parents[2] / f"cache/par_curve_{self.snapshot}.pkl"
         )
-        self.api_key = api_key or os.environ["FRED_API_KEY"]
+        self.api_key = api_key
 
     def get(self) -> YieldCurve:
         try:
@@ -35,15 +35,11 @@ class ParCurveProvider:
                 "No valid cache path defined or file does not exist."
             )
 
-        try:
-            with open(self.cache_path, "rb") as f:
-                curve = pickle.load(f)
-                if not isinstance(curve, YieldCurve):
-                    raise TypeError("Cache does not contain a valid YieldCurve object.")
-                return curve
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to load yield curve from cache: {e}")
+        with open(self.cache_path, "rb") as f:
+            curve = pickle.load(f)
+            if not isinstance(curve, YieldCurve):
+                raise TypeError("Cache does not contain a valid YieldCurve object.")
+            return curve
 
     def _get_yield_points_from_fred(self) -> List[YieldPoint]:
         TREASURY_YIELD_ID_TO_TENOR: Final[Dict[TreasuryYieldID, float]] = {
