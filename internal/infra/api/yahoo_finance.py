@@ -13,6 +13,12 @@ class YahooClient:
     def get_last_price(self) -> float:
         return self._yf_ticker.info.get("regularMarketPrice")
 
+    def get_last_close(self) -> float:
+        hist = self._yf_ticker.history(period="3d")
+        if hist.empty:
+            raise ValueError("No historical data available.")
+        return hist["Close"].iloc[-1]
+
     def get_option_chain(self, expiry: str) -> Tuple[DataFrame | DataFrame]:
         option_chain = self._yf_ticker.option_chain(expiry)
         return option_chain.calls, option_chain.puts
