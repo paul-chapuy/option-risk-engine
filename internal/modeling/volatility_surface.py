@@ -54,7 +54,7 @@ class SSVI:
     def value(
         self, moneyness: float, year_to_maturity: float, atm_volatility: float
     ) -> float:
-        total_variance = self.evaluate_total_variance(
+        total_variance = self.value_total_variance(
             moneyness, year_to_maturity, atm_volatility
         )
         if total_variance < 0:
