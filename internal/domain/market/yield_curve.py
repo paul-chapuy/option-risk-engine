@@ -9,14 +9,14 @@ from internal.modeling.yield_curve import YieldCurveModel
 class YieldCurveType(Enum):
     Par = auto()
     Spot = auto()
-    Divivend = auto()
+    Dividend = auto()
 
 
 @dataclass
 class YieldPoint:
     year_to_maturity: float
-    yield_rate: float
-    evaluation_date: date
+    value: float
+    evaluation_date: Optional[date] = None
 
 
 @dataclass
@@ -34,18 +34,15 @@ class YieldCurve:
         self.evaluation_date = unique_dates.pop()
 
     def __iter__(self):
-        return ((p.year_to_maturity, p.yield_rate) for p in self.points)
+        return ((p.year_to_maturity, p.value) for p in self.points)
 
     @property
     def tenors(self) -> List[float]:
         return [p.year_to_maturity for p in self.points]
 
     @property
-    def yields(self) -> List[float]:
-        return [p.yield_rate for p in self.points]
+    def values(self) -> List[float]:
+        return [p.value for p in self.points]
 
-    @staticmethod
-    def calibrate(
-        curve: "YieldCurve", model: YieldCurveModel, **kwargs
-    ) -> "YieldCurveModel":
-        return model.make(curve.tenors, curve.yields, **kwargs)
+    def calibrate(self, model: YieldCurveModel, **kwargs) -> "YieldCurveModel":
+        return model.make(self.tenors, self.values, **kwargs)
