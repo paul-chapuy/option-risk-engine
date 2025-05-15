@@ -9,9 +9,6 @@ from scipy.optimize import minimize
 
 class YieldCurveModel(ABC):
 
-    @abstractmethod
-    def __call__(self, dt: float) -> float: ...
-
     @classmethod
     @abstractmethod
     def make(
@@ -44,9 +41,6 @@ class NelsonSiegel(YieldCurveModel):
             f"  Cost (RMSE):    {self._rmse:.6f}",
         ]
         return "\n".join(lines)
-
-    def __call__(self, dt: float) -> float:
-        return self.value(dt)
 
     @classmethod
     def make(
@@ -134,9 +128,6 @@ class PiecewiseLinear(YieldCurveModel):
             raise ValueError("Tenors must be sorted in increasing order.")
         self._tenors = tenors
         self._yields = yields
-
-    def __call__(self, dt: float) -> float:
-        return self.value(dt)
 
     def value(self, dt: float) -> float:
         if dt <= self._tenors[0]:
