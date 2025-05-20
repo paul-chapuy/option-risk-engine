@@ -1,11 +1,22 @@
-from math import exp, sqrt, log, erf, nan
 from abc import ABC, abstractmethod
-
-from internal.domain.assets.option import OptionType, ExcerciceStyle
+from contextlib import contextmanager
+from math import erf, exp, log, nan, sqrt
 
 import numpy as np
 from numba import njit
 from scipy.optimize import brentq
+
+from internal.domain.assets.option import ExcerciceStyle, OptionType
+
+
+@contextmanager
+def temp_attr(obj, attr, new_value):
+    original = getattr(obj, attr)
+    setattr(obj, attr, new_value)
+    try:
+        yield
+    finally:
+        setattr(obj, attr, original)
 
 
 class OptionPricer(ABC):
@@ -53,6 +64,42 @@ class OptionPricer(ABC):
         sigma: float = None,
         q: float = None,
     ) -> float: ...
+
+    def delta(self, option_type: OptionType, h: float = 1e-4) -> float:
+        with temp_attr(self, "S", self.S + h):
+            up = self.price(option_type)
+        with temp_attr(self, "S", self.S - h):
+            down = self.price(option_type)
+        return (up - down) / (2 * h)
+
+    def gamma(self, option_type: OptionType, h: float = 1e-4) -> float:
+        with temp_attr(self, "S", self.S + h):
+            up = self.price(option_type)
+        with temp_attr(self, "S", self.S):
+            mid = self.price(option_type)
+        with temp_attr(self, "S", self.S - h):
+            down = self.price(option_type)
+        return (up - 2 * mid + down) / (h**2)
+
+    def vega(self, option_type: OptionType, h: float = 1e-4) -> float:
+        with temp_attr(self, "sigma", self.sigma + h):
+            up = self.price(option_type)
+        with temp_attr(self, "sigma", self.sigma - h):
+            down = self.price(option_type)
+        return (up - down) / (2 * h)
+
+    def theta(self, option_type: OptionType, h: float = 1e-4) -> float:
+        with temp_attr(self, "T", self.T - h):
+            val = self.price(option_type)
+        base = self.price(option_type)
+        return (val - base) / h
+
+    def rho(self, option_type: OptionType, h: float = 1e-4) -> float:
+        with temp_attr(self, "r", self.r + h):
+            up = self.price(option_type)
+        with temp_attr(self, "r", self.r - h):
+            down = self.price(option_type)
+        return (up - down) / (2 * h)
 
     def implied_volatility(
         self,

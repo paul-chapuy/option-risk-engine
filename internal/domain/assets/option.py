@@ -1,8 +1,8 @@
-from typing import Optional, List, Tuple, Dict
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum, auto
 from math import log
-from datetime import date
+from typing import Dict, List, Optional, Tuple
 
 from internal.domain.assets.equity import Equity
 

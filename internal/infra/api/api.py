@@ -1,5 +1,5 @@
-from typing import Any, Optional, Callable, Dict, Any, Tuple, Protocol, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional, Protocol, Tuple
 
 import requests
 

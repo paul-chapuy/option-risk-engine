@@ -1,11 +1,10 @@
-import os
 import pickle
+from datetime import datetime
 from pathlib import Path
-from typing import Final, Dict, List, Optional
-from datetime import datetime, date
+from typing import Dict, Final, List
 
+from internal.domain.market.yield_curve import YieldCurve, YieldCurveType, YieldPoint
 from internal.infra.api.fred import FredClient, TreasuryYieldID
-from internal.domain.market.yield_curve import YieldCurve, YieldPoint, YieldCurveType
 
 
 class ParCurveProvider:
@@ -21,7 +20,7 @@ class ParCurveProvider:
         try:
             curve = self.get_from_cache()
             return curve
-        except Exception as e:
+        except Exception:
             curve = self.get_from_fred()
             self.save_to_cache(curve)
             return curve

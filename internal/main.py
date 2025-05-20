@@ -1,18 +1,19 @@
 """dummy main to test stuff"""
 
 import os
-from datetime import date
-from internal.domain.assets.equity import Ticker
-from internal.provider.par_curve import ParCurveProvider
-from internal.provider.options_chains import OptionChainsProvider
-from internal.modeling.yield_curve import PiecewiseLinear, NelsonSiegel
-from internal.risk_factor.spot_curve import bootstrap_spot_curve
-from internal.risk_factor.dividend_curve import build_dividend_curve
-from internal.risk_factor.volatility_surface import compute_volatility_surface
-import numpy as np
-import matplotlib.pyplot as plt
-import time
 import pickle
+from datetime import date
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from internal.domain.assets.equity import Ticker
+from internal.modeling.yield_curve import NelsonSiegel, PiecewiseLinear
+from internal.provider.options_chains import OptionChainsProvider
+from internal.provider.par_curve import ParCurveProvider
+from internal.risk_factor.dividend_curve import build_dividend_curve
+from internal.risk_factor.spot_curve import bootstrap_spot_curve
+from internal.risk_factor.volatility_surface import compute_volatility_surface
 
 
 def plot_curve(curve, interpolated_curve, title):

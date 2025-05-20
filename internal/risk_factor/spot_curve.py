@@ -1,7 +1,7 @@
-from typing import List, Final, Tuple
 from math import exp, log
+from typing import Final, List, Tuple
 
-from internal.domain.market.yield_curve import YieldPoint, YieldCurve, YieldCurveType
+from internal.domain.market.yield_curve import YieldCurve, YieldCurveType, YieldPoint
 from internal.modeling.yield_curve import NelsonSiegel
 
 

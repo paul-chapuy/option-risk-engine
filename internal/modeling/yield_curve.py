@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional
-from math import exp, sqrt
 from bisect import bisect_right
+from math import exp, sqrt
+from typing import List, Optional, Tuple
 
 import numpy as np
 from scipy.optimize import minimize

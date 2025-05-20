@@ -1,7 +1,7 @@
+from dataclasses import dataclass
+from datetime import date
 from enum import Enum, auto
 from typing import List, Optional
-from datetime import date
-from dataclasses import dataclass
 
 from internal.modeling.yield_curve import YieldCurveModel
 

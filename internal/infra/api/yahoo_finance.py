@@ -1,6 +1,6 @@
-from typing import Dict, List, Tuple
-import yfinance as yf
+from typing import Tuple
 
+import yfinance as yf
 from pandas import DataFrame
 
 

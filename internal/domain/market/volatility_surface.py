@@ -9,6 +9,7 @@ class IVPoint:
     moneyness: float
     forward_moneyness: float
     value: float
+    vega: float
 
 
 @dataclass

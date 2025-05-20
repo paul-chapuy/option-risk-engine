@@ -1,9 +1,9 @@
-from math import exp, log
 from datetime import date, timedelta
+from math import exp, log
 from typing import List
 
-from internal.domain.assets.option import OptionChains, ExcerciceStyle, OptionType
-from internal.domain.market.volatility_surface import IVSurface, IVSlice, IVPoint
+from internal.domain.assets.option import OptionChains, OptionType
+from internal.domain.market.volatility_surface import IVPoint, IVSlice, IVSurface
 from internal.modeling.option_pricer import OptionPricer
 from internal.modeling.yield_curve import YieldCurveModel
 
@@ -60,6 +60,7 @@ def compute_volatility_surface(
 
             pricer: OptionPricer = OptionPricer.make(ex_style, S, K, r, T)
             iv = pricer.implied_volatility(opt.option_type, opt.last_price, q)
+            vega = pricer.vega(opt.option_type)
 
             slice.append(
                 IVPoint(
@@ -68,6 +69,7 @@ def compute_volatility_surface(
                     moneyness=moneyness,
                     forward_moneyness=fwd_moneyness,
                     value=iv,
+                    vega=vega,
                 )
             )
 

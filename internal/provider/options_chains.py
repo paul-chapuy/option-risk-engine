@@ -1,16 +1,16 @@
 import pickle
-from pathlib import Path
-from typing import Final, Dict
 from datetime import date
+from pathlib import Path
+from typing import Dict
 
+from internal.domain.assets.equity import Equity, Ticker
 from internal.domain.assets.option import (
+    ExcerciceStyle,
     Option,
     OptionChain,
     OptionChains,
     OptionType,
-    ExcerciceStyle,
 )
-from internal.domain.assets.equity import Equity, Ticker
 from internal.infra.api.yahoo_finance import YahooClient
 
 
@@ -37,7 +37,7 @@ class OptionChainsProvider:
         try:
             chains = self.get_from_cache()
             return chains
-        except Exception as e:
+        except Exception:
             chains = self.get_from_yfinance()
             self.save_to_cache(chains)
             return chains
